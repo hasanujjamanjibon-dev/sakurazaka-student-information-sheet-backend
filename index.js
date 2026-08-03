@@ -312,32 +312,97 @@ app.delete("/api/data/:id", async (req, res) => {
   }
 });
 
+// app.get("/api/students", async (req, res) => {
+//   try {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 25;
+//     const search = req.query.search || "";
+
+//     const skip = (page - 1) * limit;
+
+//     const filter = search
+//       ? {
+//           $or: [
+//             {
+//               "studentInformation.studentName": {
+//                 $regex: search,
+//                 $options: "i",
+//               },
+//             },
+//             {
+//               "sponsorInformation.sponsorName": {
+//                 $regex: search,
+//                 $options: "i",
+//               },
+//             },
+//             {
+//               applicationId: {
+//                 $regex: search,
+//                 $options: "i",
+//               },
+//             },
+//           ],
+//         }
+//       : {};
+
+//     const collection = db.collection("students");
+
+//     const total = await collection.countDocuments(filter);
+
+//     const students = await collection
+//       .find(filter)
+//       .sort({
+//         createdAt: -1,
+//       })
+//       .skip(skip)
+//       .limit(limit)
+//       .toArray();
+
+//     res.json({
+//       success: true,
+//       total,
+//       page,
+//       limit,
+//       totalPages: Math.ceil(total / limit),
+//       students,
+//     });
+//   } catch (err) {
+//     console.error(err);
+
+//     res.status(500).json({
+//       success: false,
+//       message: err.message,
+//     });
+//   }
+// });
 app.get("/api/students", async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 25;
-    const search = req.query.search || "";
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 12;
+    const q = req.query.q?.trim() || "";
 
     const skip = (page - 1) * limit;
 
-    const filter = search
+    const collection = db.collection("students");
+
+    const filter = q
       ? {
           $or: [
             {
               "studentInformation.studentName": {
-                $regex: search,
+                $regex: q,
                 $options: "i",
               },
             },
             {
               "sponsorInformation.sponsorName": {
-                $regex: search,
+                $regex: q,
                 $options: "i",
               },
             },
             {
               applicationId: {
-                $regex: search,
+                $regex: q,
                 $options: "i",
               },
             },
@@ -345,15 +410,11 @@ app.get("/api/students", async (req, res) => {
         }
       : {};
 
-    const collection = db.collection("students");
-
     const total = await collection.countDocuments(filter);
 
     const students = await collection
       .find(filter)
-      .sort({
-        createdAt: -1,
-      })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .toArray();
@@ -362,13 +423,52 @@ app.get("/api/students", async (req, res) => {
       success: true,
       total,
       page,
-      limit,
       totalPages: Math.ceil(total / limit),
       students,
     });
   } catch (err) {
-    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
 
+app.get("/api/statistics", async (req, res) => {
+  try {
+    const collection = db.collection("students");
+
+    const total = await collection.countDocuments();
+
+    const now = new Date();
+
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+
+    const thisMonth = await collection.countDocuments({
+      createdAt: {
+        $gte: monthStart,
+      },
+    });
+
+    const today = await collection.countDocuments({
+      createdAt: {
+        $gte: todayStart,
+      },
+    });
+
+    res.json({
+      success: true,
+      total,
+      thisMonth,
+      today,
+    });
+  } catch (err) {
     res.status(500).json({
       success: false,
       message: err.message,
