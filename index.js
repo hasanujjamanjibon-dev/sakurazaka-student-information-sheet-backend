@@ -9,16 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const cloudinary = require("./config/cloudinary");
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "https://sakurazaka-student-information-form.netlify.app",
-      "https://sakurazaka-student-information-form.vercel.app",
-    ],
-    credentials: true,
-  }),
-);
+app.use(cors());
 app.use(express.json());
 
 const requiredEnv = [
