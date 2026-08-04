@@ -553,18 +553,6 @@ app.get("/", (req, res) => {
   res.send("API Running...");
 });
 
-async function startServer() {
-  try {
-    await connectDB();
-
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-  } catch (err) {
-    console.log(err);
-  }
-}
-
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -580,4 +568,14 @@ process.on("SIGTERM", () => {
   client.close();
   process.exit();
 });
-startServer();
+
+let connected = false;
+
+module.exports = async (req, res) => {
+  if (!connected) {
+    await connectDB();
+    connected = true;
+  }
+
+  return app(req, res);
+};
