@@ -9,15 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const cloudinary = require("./config/cloudinary");
 
-// app.use(
-//   cors({
-//     ORIGIN: [
-//       "https://sakurazaka-student-information-form.vercel.app",
-//       "https://sakurazaka-student-information-form.netlify.app",
-//       "http://localhost:5173",
-//     ],
-//   }),
-// );
+
 app.use(
   cors({
     origin: [
@@ -329,65 +321,6 @@ app.delete("/api/data/:id", async (req, res) => {
     });
   }
 });
-
-// app.get("/api/students", async (req, res) => {
-//   try {
-//     const page = Number(req.query.page) || 1;
-//     const limit = Number(req.query.limit) || 12;
-//     const q = req.query.q?.trim() || "";
-
-//     const skip = (page - 1) * limit;
-
-//     const collection = db.collection("students");
-
-//     const filter = q
-//       ? {
-//           $or: [
-//             {
-//               "studentInformation.studentName": {
-//                 $regex: q,
-//                 $options: "i",
-//               },
-//             },
-//             {
-//               "sponsorInformation.sponsorName": {
-//                 $regex: q,
-//                 $options: "i",
-//               },
-//             },
-//             {
-//               applicationId: {
-//                 $regex: q,
-//                 $options: "i",
-//               },
-//             },
-//           ],
-//         }
-//       : {};
-
-//     const total = await collection.countDocuments(filter);
-
-//     const students = await collection
-//       .find(filter)
-//       .sort({ createdAt: -1 })
-//       .skip(skip)
-//       .limit(limit)
-//       .toArray();
-
-//     res.json({
-//       success: true,
-//       total,
-//       page,
-//       totalPages: Math.ceil(total / limit),
-//       students,
-//     });
-//   } catch (err) {
-//     res.status(500).json({
-//       success: false,
-//       message: err.message,
-//     });
-//   }
-// });
 
 app.get("/api/students", async (req, res) => {
   try {
