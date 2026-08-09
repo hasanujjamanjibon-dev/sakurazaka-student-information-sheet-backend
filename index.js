@@ -9,7 +9,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const cloudinary = require("./config/cloudinary");
 
-
 app.use(
   cors({
     origin: [
@@ -322,6 +321,100 @@ app.delete("/api/data/:id", async (req, res) => {
   }
 });
 
+// app.get("/api/students", async (req, res) => {
+//   try {
+//     const page = Number(req.query.page) || 1;
+//     const limit = Number(req.query.limit) || 24;
+//     const q = req.query.q?.trim() || "";
+//     const date = req.query.date?.trim() || "";
+
+//     const skip = (page - 1) * limit;
+
+//     const collection = db.collection("students");
+
+//     // =========================
+//     // Search Filter
+//     // =========================
+
+//     const filter = {};
+
+//     if (q) {
+//       filter.$or = [
+//         {
+//           "studentInformation.studentName": {
+//             $regex: q,
+//             $options: "i",
+//           },
+//         },
+//         {
+//           "sponsorInformation.sponsorName": {
+//             $regex: q,
+//             $options: "i",
+//           },
+//         },
+//         {
+//           applicationId: {
+//             $regex: q,
+//             $options: "i",
+//           },
+//         },
+//       ];
+//     }
+
+//     // =========================
+//     // Date Filter
+//     // =========================
+
+//     if (date) {
+//       // Bangladesh Time (UTC+6)
+//       const startDate = new Date(`${date}T00:00:00+06:00`);
+
+//       const endDate = new Date(`${date}T23:59:59.999+06:00`);
+
+//       filter.createdAt = {
+//         $gte: startDate,
+//         $lte: endDate,
+//       };
+//     }
+
+//     console.log("Students Filter:", filter);
+
+//     // =========================
+//     // Total
+//     // =========================
+
+//     const total = await collection.countDocuments(filter);
+
+//     // =========================
+//     // Students
+//     // =========================
+
+//     const students = await collection
+//       .find(filter)
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(limit)
+//       .toArray();
+
+//     res.json({
+//       success: true,
+//       total,
+//       page,
+//       limit,
+//       totalPages: Math.ceil(total / limit),
+//       students,
+//     });
+//   } catch (err) {
+//     console.error(err);
+
+//     res.status(500).json({
+//       success: false,
+//       message: err.message,
+//     });
+//   }
+// });
+
+//new api for students with pagination, search, and date filter
 app.get("/api/students", async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
@@ -341,18 +434,63 @@ app.get("/api/students", async (req, res) => {
 
     if (q) {
       filter.$or = [
+        // Student Name
         {
           "studentInformation.studentName": {
             $regex: q,
             $options: "i",
           },
         },
+
+        // Student Phone
+        {
+          "studentInformation.studentPhone": {
+            $regex: q,
+            $options: "i",
+          },
+        },
+
+        // Student Alternative Phone
+        {
+          "studentInformation.studentAltPhone": {
+            $regex: q,
+            $options: "i",
+          },
+        },
+
+        // Father Phone
+        {
+          "studentInformation.studentFatherPhone": {
+            $regex: q,
+            $options: "i",
+          },
+        },
+
+        // Mother Phone
+        {
+          "studentInformation.studentMotherPhone": {
+            $regex: q,
+            $options: "i",
+          },
+        },
+
+        // Sponsor Name
         {
           "sponsorInformation.sponsorName": {
             $regex: q,
             $options: "i",
           },
         },
+
+        // Sponsor Phone
+        {
+          "sponsorInformation.sponsorPhone": {
+            $regex: q,
+            $options: "i",
+          },
+        },
+
+        // Application ID
         {
           applicationId: {
             $regex: q,
@@ -501,6 +639,7 @@ async function connectDB() {
         },
         name: "sponsorName_index",
       },
+
       {
         key: {
           applicationId: 1,
