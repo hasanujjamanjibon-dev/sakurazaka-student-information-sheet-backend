@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const verifyFirebaseToken = require("./middleware/authMiddleware");
 const multer = require("multer");
 const sharp = require("sharp");
 const streamifier = require("streamifier");
@@ -71,6 +72,15 @@ const upload = multer({
     }
   },
 });
+
+app.get("/api/auth-test", verifyFirebaseToken, (req, res) => {
+  res.json({
+    success: true,
+    message: "Authentication successful",
+    user: req.user,
+  });
+});
+
 // =====================================
 // Upload Images
 // =====================================
@@ -219,7 +229,7 @@ app.get("/api/data", async (req, res) => {
   }
 });
 
-app.get("/api/data/:id", async (req, res) => {
+app.get("/api/data/:id", verifyFirebaseToken, async (req, res) => {
   try {
     const student = await db.collection("students").findOne({
       _id: new ObjectId(req.params.id),
@@ -244,7 +254,7 @@ app.get("/api/data/:id", async (req, res) => {
   }
 });
 
-app.put("/api/data/:id", async (req, res) => {
+app.put("/api/data/:id", verifyFirebaseToken, async (req, res) => {
   try {
     if (!ObjectId.isValid(req.params.id)) {
       return res.status(400).json({
@@ -287,7 +297,7 @@ app.put("/api/data/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/data/:id", async (req, res) => {
+app.delete("/api/data/:id", verifyFirebaseToken, async (req, res) => {
   try {
     if (!ObjectId.isValid(req.params.id)) {
       return res.status(400).json({
@@ -321,9 +331,8 @@ app.delete("/api/data/:id", async (req, res) => {
   }
 });
 
-
 //new api for students with pagination, search, and date filter
-app.get("/api/students", async (req, res) => {
+app.get("/api/students", verifyFirebaseToken, async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 24;
@@ -424,8 +433,6 @@ app.get("/api/students", async (req, res) => {
       };
     }
 
-    console.log("Students Filter:", filter);
-
     // =========================
     // Total
     // =========================
@@ -461,7 +468,7 @@ app.get("/api/students", async (req, res) => {
   }
 });
 
-app.get("/api/statistics", async (req, res) => {
+app.get("/api/statistics", verifyFirebaseToken, async (req, res) => {
   try {
     const collection = db.collection("students");
 
@@ -527,6 +534,7 @@ app.post("/api/data", async (req, res) => {
     });
   }
 });
+
 async function connectDB() {
   try {
     await client.connect();
@@ -547,7 +555,6 @@ async function connectDB() {
         },
         name: "sponsorName_index",
       },
-
       {
         key: {
           applicationId: 1,
@@ -565,8 +572,8 @@ async function connectDB() {
 
     console.log("✅ MongoDB Connected");
   } catch (err) {
-    console.log(err);
-    process.exit(1);
+    console.error("❌ MongoDB Connection Error:", err);
+    throw err;
   }
 }
 
@@ -587,6 +594,33 @@ app.use((req, res) => {
     message: "Route Not Found",
   });
 });
+
+// ===============================
+// LOCAL SERVER
+// ===============================
+
+if (require.main === module) {
+  connectDB()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+      });
+    })
+    .catch((err) => {
+      console.error("❌ Server failed to start:", err);
+      process.exit(1);
+    });
+}
+
+module.exports = async (req, res) => {
+  if (!connected) {
+    await connectDB();
+    connected = true;
+  }
+
+  return app(req, res);
+};
+
 process.on("SIGINT", () => {
   client.close();
   process.exit();
@@ -598,12 +632,3 @@ process.on("SIGTERM", () => {
 });
 
 let connected = false;
-
-module.exports = async (req, res) => {
-  if (!connected) {
-    await connectDB();
-    connected = true;
-  }
-
-  return app(req, res);
-};
