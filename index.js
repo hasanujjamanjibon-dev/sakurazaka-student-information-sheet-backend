@@ -1,7 +1,6 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const verifyFirebaseToken = require("./middleware/authMiddleware");
 const multer = require("multer");
 const sharp = require("sharp");
 const streamifier = require("streamifier");
@@ -51,6 +50,7 @@ function makeFileName(text) {
     .replace(/[^a-zA-Z0-9_]/g, "");
 }
 let db;
+let connected = false;
 // =====================================
 // Multer
 // =====================================
@@ -71,14 +71,6 @@ const upload = multer({
       cb(new Error("Only JPG and PNG files are allowed."));
     }
   },
-});
-
-app.get("/api/auth-test", verifyFirebaseToken, (req, res) => {
-  res.json({
-    success: true,
-    message: "Authentication successful",
-    user: req.user,
-  });
 });
 
 // =====================================
@@ -229,7 +221,7 @@ app.get("/api/data", async (req, res) => {
   }
 });
 
-app.get("/api/data/:id", verifyFirebaseToken, async (req, res) => {
+app.get("/api/data/:id", async (req, res) => {
   try {
     const student = await db.collection("students").findOne({
       _id: new ObjectId(req.params.id),
@@ -254,7 +246,7 @@ app.get("/api/data/:id", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-app.put("/api/data/:id", verifyFirebaseToken, async (req, res) => {
+app.put("/api/data/:id", async (req, res) => {
   try {
     if (!ObjectId.isValid(req.params.id)) {
       return res.status(400).json({
@@ -297,7 +289,7 @@ app.put("/api/data/:id", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-app.delete("/api/data/:id", verifyFirebaseToken, async (req, res) => {
+app.delete("/api/data/:id", async (req, res) => {
   try {
     if (!ObjectId.isValid(req.params.id)) {
       return res.status(400).json({
@@ -332,7 +324,7 @@ app.delete("/api/data/:id", verifyFirebaseToken, async (req, res) => {
 });
 
 //new api for students with pagination, search, and date filter
-app.get("/api/students", verifyFirebaseToken, async (req, res) => {
+app.get("/api/students", async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 24;
@@ -468,7 +460,7 @@ app.get("/api/students", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-app.get("/api/statistics", verifyFirebaseToken, async (req, res) => {
+app.get("/api/statistics", async (req, res) => {
   try {
     const collection = db.collection("students");
 
@@ -613,12 +605,21 @@ if (require.main === module) {
 }
 
 module.exports = async (req, res) => {
-  if (!connected) {
-    await connectDB();
-    connected = true;
-  }
+  try {
+    if (!connected) {
+      await connectDB();
+      connected = true;
+    }
 
-  return app(req, res);
+    return app(req, res);
+  } catch (error) {
+    console.error("❌ Vercel Backend Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Backend server error",
+    });
+  }
 };
 
 process.on("SIGINT", () => {
@@ -630,5 +631,3 @@ process.on("SIGTERM", () => {
   client.close();
   process.exit();
 });
-
-let connected = false;
