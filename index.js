@@ -252,13 +252,48 @@ app.put("/api/data/:id", async (req, res) => {
       });
     }
 
+    const data = {
+      ...req.body,
+    };
+
+    // =========================================
+    // STUDENT DOB
+    // =========================================
+
+    if (data.studentInformation?.studentDob) {
+      data.studentInformation.studentDob = new Date(
+        `${data.studentInformation.studentDob}T00:00:00+06:00`,
+      );
+    }
+
+    // =========================================
+    // FAMILY DOB
+    // =========================================
+
+    if (Array.isArray(data.familyInformation)) {
+      data.familyInformation = data.familyInformation.map((member) => {
+        if (member.dob) {
+          return {
+            ...member,
+            dob: new Date(`${member.dob}T00:00:00+06:00`),
+          };
+        }
+
+        return member;
+      });
+    }
+
+    // =========================================
+    // UPDATE
+    // =========================================
+
     const result = await db.collection("students").updateOne(
       {
         _id: new ObjectId(req.params.id),
       },
       {
         $set: {
-          ...req.body,
+          ...data,
           updatedAt: new Date(),
         },
       },
@@ -285,7 +320,6 @@ app.put("/api/data/:id", async (req, res) => {
     });
   }
 });
-
 app.delete("/api/data/:id", async (req, res) => {
   try {
     if (!ObjectId.isValid(req.params.id)) {
@@ -498,14 +532,50 @@ app.get("/api/statistics", async (req, res) => {
     });
   }
 });
-
 app.post("/api/data", async (req, res) => {
   try {
     const collection = db.collection("students");
 
-    const result = await collection.insertOne({
+    const data = {
       ...req.body,
+    };
+
+    // =========================================
+    // STUDENT DOB
+    // =========================================
+
+    if (data.studentInformation?.studentDob) {
+      data.studentInformation.studentDob = new Date(
+        `${data.studentInformation.studentDob}T00:00:00+06:00`,
+      );
+    }
+
+    // =========================================
+    // FAMILY DOB
+    // =========================================
+
+    if (Array.isArray(data.familyInformation)) {
+      data.familyInformation = data.familyInformation.map((member) => {
+        if (member.dob) {
+          return {
+            ...member,
+            dob: new Date(`${member.dob}T00:00:00+06:00`),
+          };
+        }
+
+        return member;
+      });
+    }
+
+    // =========================================
+    // INSERT
+    // =========================================
+
+    const result = await collection.insertOne({
+      ...data,
+
       applicationId: "SKZ-" + new Date().getFullYear() + "-" + Date.now(),
+
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -515,7 +585,7 @@ app.post("/api/data", async (req, res) => {
       insertedId: result.insertedId,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
 
     res.status(500).json({
       success: false,
