@@ -191,9 +191,6 @@ async function uploadToCloudinary(file, fileName, folder) {
           console.error("Cloudinary Error:", error);
           return reject(error);
         }
-
-        console.log("Uploaded:", result.secure_url);
-
         resolve(result.secure_url);
       },
     );
