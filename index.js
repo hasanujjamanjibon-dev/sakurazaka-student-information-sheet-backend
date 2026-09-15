@@ -11,11 +11,7 @@ const cloudinary = require("./config/cloudinary");
 
 app.use(
   cors({
-    origin: [
-      "https://sakurazaka-student-information-form.vercel.app",
-      "https://sakurazaka-student-information-form.netlify.app",
-      "http://localhost:5173",
-    ],
+    origin: ["https://sk-std-form.vercel.app", "http://localhost:5173"],
     credentials: true,
   }),
 );
