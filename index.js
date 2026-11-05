@@ -8,7 +8,6 @@ const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
 const app = express();
 const PORT = process.env.PORT || 5000;
 const cloudinary = require("./config/cloudinary");
-const cloudinary = require("cloudinary").v2;
 
 app.use(
   cors({
@@ -18,27 +17,7 @@ app.use(
 );
 
 app.use(express.json());
-function getPublicIdFromUrl(url) {
-  if (!url) return null;
-  try {
-    const parts = url.split("/");
-    const uploadIndex = parts.indexOf("upload");
-    if (uploadIndex === -1) return null;
-    let pathParts = parts.slice(uploadIndex + 1);
 
-    // Jodi version thake (jemon v1793080512), tahole seta bad dite hobe
-    if (pathParts[0].startsWith("v")) {
-      pathParts = pathParts.slice(1);
-    }
-
-    const fullPath = pathParts.join("/");
-    // File extension bad diye shudhu public_id rakha
-    const publicId = fullPath.substring(0, fullPath.lastIndexOf("."));
-    return publicId;
-  } catch (err) {
-    return null;
-  }
-}
 const requiredEnv = [
   "MONGODB_URI",
   "CLOUDINARY_CLOUD_NAME",
@@ -344,46 +323,27 @@ app.delete("/api/data/:id", async (req, res) => {
     if (!ObjectId.isValid(req.params.id)) {
       return res.status(400).json({
         success: false,
+
         message: "Invalid Student ID",
       });
     }
 
-    // ক. প্রথমে ডাটাবেজ থেকে স্টুডেন্ট ডাটা খুঁজে বের করুন (ছবি ডিলিট করার ইউআরএল পাওয়ার জন্য)
-    const student = await db.collection("students").findOne({
-      _id: new ObjectId(req.params.id),
-    });
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
-    }
-
-    // খ. Cloudinary থেকে Student Photo ডিলিট করা
-    if (student.studentPhoto) {
-      const publicId1 = getPublicIdFromUrl(student.studentPhoto);
-      if (publicId1) {
-        await cloudinary.uploader.destroy(publicId1);
-      }
-    }
-
-    // গ. Cloudinary থেকে Sponsor Photo ডিলিট করা
-    if (student.sponsorPhoto) {
-      const publicId2 = getPublicIdFromUrl(student.sponsorPhoto);
-      if (publicId2) {
-        await cloudinary.uploader.destroy(publicId2);
-      }
-    }
-
-    // ঘ. এবার ডাটাবেজ থেকে স্টুডেন্ট রেকর্ডটি ডিলিট করুন
     const result = await db.collection("students").deleteOne({
       _id: new ObjectId(req.params.id),
     });
 
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+
+        message: "Student not found",
+      });
+    }
+
     res.json({
       success: true,
-      message: "Student and Cloudinary images deleted successfully",
+
+      message: "Student deleted successfully",
     });
   } catch (err) {
     console.error(err);
